@@ -55,7 +55,7 @@
     );
   };
 
-  const countInput = prompt("Kaç adet gönderiden link toplanacak?", "10");
+  const countInput = prompt("Kaç adet gönderiden veri toplanacak?", "10");
   const targetCount = parseInt(countInput, 10);
 
   if (!targetCount || targetCount < 1) {
@@ -64,35 +64,47 @@
   }
 
   const postAnchors = getPostAnchors();
+
   if (!postAnchors.length) {
     alert("Gönderi linkleri bulunamadı.");
     return;
   }
 
   const maxCount = Math.min(targetCount, postAnchors.length);
-  const results = [];
+
+  const captionUrls = [];
+  const postUrls = [];
 
   postAnchors[0].click();
 
   if (!(await waitFor(() => getCaptionElement(), 15000))) {
-    alert("İlk gönderi açılamadı veya açıklama bulunamadı.");
+    alert("İlk gönderi açılamadı.");
     return;
   }
 
   for (let i = 0; i < maxCount; i++) {
+
     console.log(`İşleniyor ${i + 1}/${maxCount}`);
 
+    // POST URL
+    const postUrl = location.href.split("?")[0];
+    postUrls.push(postUrl);
+
+    // CAPTION URL
     const captionEl = await waitFor(() => getCaptionElement(), 15000);
     const captionText = captionEl ? captionEl.innerText : "";
     const foundUrl = extractUrlFromText(captionText);
 
-    results.push(foundUrl || "URL_BULUNAMADI");
-    console.log(foundUrl || "URL_BULUNAMADI");
+    captionUrls.push(foundUrl || "URL_BULUNAMADI");
+
+    console.log("POST:", postUrl);
+    console.log("CAPTION URL:", foundUrl || "URL_BULUNAMADI");
 
     if (i < maxCount - 1) {
       const nextBtn = await waitFor(() => getNextButton(), 10000);
+
       if (!nextBtn) {
-        console.warn("İleri butonu bulunamadı, işlem durdu.");
+        console.warn("İleri butonu bulunamadı.");
         break;
       }
 
@@ -101,17 +113,24 @@
     }
   }
 
-  const output = results.join("\n");
+  const output =
+`POST_URL_LIST
+${postUrls.join("\n")}
+
+CAPTION_URL_LIST
+${captionUrls.join("\n")}
+`;
 
   try {
     await navigator.clipboard.writeText(output);
-    alert(`Tamamlandı. ${results.length} link panoya kopyalandı.`);
-  } catch (err) {
-    alert("Panoya kopyalama başarısız oldu. Konsoldan al.");
+    alert(`Tamamlandı. ${postUrls.length} gönderi işlendi.`);
+  } catch {
+    alert("Panoya kopyalanamadı. Konsoldan al.");
   }
 
-  console.log("Toplanan linkler:\n" + output);
+  console.log(output);
 
   const closeBtn = getCloseButton();
   if (closeBtn) closeBtn.click();
+
 })();
